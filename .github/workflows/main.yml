@@ -6,6 +6,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      PROJECT_DIR: .   # <-- si tu proyecto está en una subcarpeta, cámbialo (p.ej. "CircleRunner")
 
     steps:
       - name: Checkout
@@ -23,11 +25,24 @@ jobs:
       - name: Accept Android licenses
         run: yes | sdkmanager --licenses
 
+      # Descargar Gradle y generar wrapper (si no existe)
+      - name: Download Gradle 8.7 and generate wrapper
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          curl -L -o gradle.zip https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          unzip -q gradle.zip
+          ./gradle-8.7/bin/gradle --version
+          ./gradle-8.7/bin/gradle wrapper --gradle-version 8.7
+          ls -la
+
+      # Construir APK usando el wrapper recién generado
       - name: Build Debug APK
+        working-directory: ${{ env.PROJECT_DIR }}
         run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: CircleRunner-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
+          
